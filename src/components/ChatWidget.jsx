@@ -162,6 +162,18 @@ function ChatWidget() {
     const userMessage = { text, sender: "user", time: new Date() }
     setMessages((prev) => [...prev, userMessage])
     setInputValue("")
+
+    if (text === "I am not satisfied with responses and wanted to speak to HR") {
+      setTimeout(() => {
+        setMessages((prev) => [...prev, {
+          text: "Sure, you can reach out to respective location HR SPOC and discuss your concerns",
+          sender: "bot",
+          time: new Date()
+        }])
+      }, 500)
+      return
+    }
+
     setIsLoading(true)
 
     try {
@@ -186,11 +198,17 @@ function ChatWidget() {
 
       const data = await response.json()
 
+      const defaultFollowUp = "I am not satisfied with responses and wanted to speak to HR"
+      const followUps = data.follow_up_questions ? [...data.follow_up_questions] : []
+      if (!followUps.includes(defaultFollowUp)) {
+        followUps.push(defaultFollowUp)
+      }
+
       setMessages((prev) => [...prev, { 
         text: data.answer, 
         sender: "bot",
         sources: data.sources,
-        followUpQuestions: data.follow_up_questions,
+        followUpQuestions: followUps,
         time: new Date()
       }])
 
