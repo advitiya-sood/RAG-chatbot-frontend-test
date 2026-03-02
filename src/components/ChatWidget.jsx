@@ -41,7 +41,7 @@ function ChatWidget() {
 
   const handleCopy = (text, index) => {
     // Strip citation block before copying
-    const cleanText = text.replace(/\n\nCitation:[\s\S]*$/, '').trim()
+    const cleanText = text.replace(/\n\nCitations?:[\s\S]*$/, '').trim()
     navigator.clipboard.writeText(cleanText).then(() => {
       setCopiedIndex(index)
       setTimeout(() => setCopiedIndex(null), 2000)
@@ -68,34 +68,41 @@ function ChatWidget() {
 
       // Citation section
       if (line.startsWith('Citation:') || line.startsWith('Citations:')) {
-        const citationMatch = lines[i + 1] && lines[i + 1].match(/^\[\d+\]/)
+        const citationElements = [];
+        let j = i + 1;
         
-        // Find source that matches this citation
-        // The simple logic: if we have sources, and this is citation [1], it corresponds to sources[0]
-        // This assumes citations are always [1] for the top source as per our backend logic
-        let sourcePreview = null
-        if (citationMatch && sources && sources.length > 0) {
-            sourcePreview = sources[0].preview
+        while (j < lines.length && lines[j].match(/^\[\d+\]/)) {
+          const match = lines[j].match(/^\[(\d+)\]/);
+          const idx = match ? parseInt(match[1]) - 1 : 0;
+          
+          let sourcePreview = null;
+          if (sources && sources.length > idx) {
+            sourcePreview = sources[idx].preview;
+          }
+
+          citationElements.push(
+            <div key={`cit-${j}`} className="citation-wrapper" style={{marginBottom: '4px'}}>
+              <span className="citation-text">{lines[j]}</span>
+              {sourcePreview && (
+                <div className="source-tooltip">
+                  <div className="tooltip-header">Passage Preview</div>
+                  <div className="tooltip-content">"...{sourcePreview}..."</div>
+                </div>
+              )}
+            </div>
+          );
+          j++;
         }
 
         elements.push(
-          <div key={i} className="citation-section">
-            <span className="citation-label">📎 Source</span>
-            {citationMatch && (
-              <div className="citation-wrapper">
-                <span className="citation-text">{lines[i + 1].replace(/^\[\d+\]\s*/, '')}</span>
-                {sourcePreview && (
-                  <div className="source-tooltip">
-                    <div className="tooltip-header">Passage Preview</div>
-                    <div className="tooltip-content">"...{sourcePreview}..."</div>
-                  </div>
-                )}
-              </div>
-            )}
+          <div key={`cit-section-${i}`} className="citation-section">
+            <div className="citation-label" style={{marginBottom: '8px'}}>📎 Sources</div>
+            {citationElements}
           </div>
-        )
-        i += 2
-        continue
+        );
+        
+        i = j;
+        continue;
       }
 
       if (line.match(/^\[\d+\]/)) { i++; continue }
